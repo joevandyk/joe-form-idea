@@ -23,6 +23,12 @@ We use the standard ActiveModel::Validator stuff.  The
 validation_scopes allows us to scope validations, so
 we'd only run the validations for certain attributes.
 
+ActiveModel would be the only dependency, by the way.
+
+The other files in this project are a taste of what
+this could look like.  Still looking for a good project
+name, by the way.
+
 
 ??? WHY ???
 
