@@ -23,3 +23,20 @@ We use the standard ActiveModel::Validator stuff.  The
 validation_scopes allows us to scope validations, so
 we'd only run the validations for certain attributes.
 
+
+??? WHY ???
+
+Moving the form logic to a separate class has a ton of advantages:
+
+* Keeps the controller really simple.  
+
+* Makes it easier to test. You can write tests directly against the form handling class.
+
+* Classes should do one thing.
+
+* You can have complex validations.
+
+* Your ActiveRecord models can probably become simpler.
+
+* Since the form handling logic is encapsulated into one class, you can use 
+  inheritance, modules, etc.
