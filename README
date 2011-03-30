@@ -1,0 +1,161 @@
+
+# Cool Form Handling Overview
+#
+# For each of your html forms, you'd define a form handling class
+# and include the Joe::Rocks::FormStuff module into it.
+#
+# This class is an interface / layer between ActionController
+# and your Models (or whatever you are saving the data to).
+# You could just send an email after they submit the form.
+#
+# After you submit the form, the values you submit are put
+# into a gzip'd encoded cookie with json in it.
+# This allows us to access the stuff you entered earlier.
+#
+# When you submit the next form (or the same form again),
+# the values you submit are merged into the already-submitted
+# form values that are saved in the cookie.  So, you could submit
+# an ajax request that only has one form attribute, and it would
+# merge that one attribute with the other stuff you already submitted
+# earlier.
+#
+# We use the standard ActiveModel::Validator stuff.  The
+# validation_scopes allows us to scope validations, so
+# we'd only run the validations for certain attributes.
+
+
+# Form presentation class
+class Forms::OrderForm
+  include Joe::Rocks::FormStuff
+  form_attributes :name, :email, :address, :city, :state, :zip
+
+  # This stores the form stuff in a cookie named order_cookie
+  form_storage :cookie, :name => 'order_cookie'
+
+  # This allows you to customize the form storing.
+  # Half-baked idea.
+  # i.e. you want to save the incomplete forms in a database table
+  # or redis or a session or something.
+  # You'd create the OrderFormSaver class and override the
+  # load and save methods (maybe?).
+  form_storage OrderFormSaver
+
+  # These methods get called after the values submitted with the
+  # form are merged with the cookie.  Gives you a chance to
+  # create objects based off the form values.
+  after_load :initialize_order_preview
+
+  # validation_scope is from https://github.com/dasil003/validation_scopes
+  # I've got a modified version for Rails 3.
+  validation_scope :cart_errors do |scope|
+    scope.validates :name,  :presence => true
+    scope.validates :email, :email    => true
+  end
+
+  validation_scope :shipping_errors do |scope|
+    %w( address city state zip ).each do |attr|
+      scope.validates attr, :presence => true
+    end
+  end
+
+  def total
+    @order.total
+  end
+
+  def save!
+    order = Order.new :name          => attributes[:name],
+                      :email_address => attributes[:email]
+
+    address = Address.new :address => attributes[:address],
+                          :city    => attributes[:city],
+                          :state   => attributes[:state],
+                          :zip     => attributes[:zip]
+
+    order.address = address
+
+    # Question: how to handle validation problems here?
+    # Raise exception and catch in controller?
+    order.save
+  end
+
+  private
+
+
+  def initialize_order_preview
+    @order = Order.new :user => @controller.current_user,
+                       :email_address => attributes[:email]
+  end
+
+end
+
+# Controller
+class OrdersController < ActionController::Base
+  before_filter :load_form
+  before_filter :cart_good?, :only => :shipping
+
+  def cart
+  end
+
+  def shipping
+    if @form.no_shipping_errors?
+      @form.save!
+      redirect_to :action => 'thanks'
+    end
+  end
+
+  def thanks
+    @order = @form.order
+  end
+
+  private
+
+  def cart_good?
+    if @form.cart_errors?
+      redirect_to :action => 'cart'
+      return false
+    end
+  end
+
+  def load_form
+    @form = Forms::OrderForm.new(
+      :controller => self,
+      :attributes => params[:order]
+    )
+  end
+end
+
+
+# Cart Form
+%p Your Order Total is #{ @form.total }!
+
+= form_tag cart_orders_url do
+  = fields_for :form do |f|
+    %ul
+      %li
+        = f.label :name
+        = f.text_field :name
+      %li
+        = f.label :email
+        = f.text_field :email
+
+# Shipping form
+%p Your Order Total is #{ @form.total }!
+= form_tag cart_orders_url do
+  = fields_for :form do |f|
+    %ul
+      %li
+        = f.label :address
+        = f.text_field :address
+
+      %li
+        = f.label :city
+        = f.text_field :city
+
+      %li
+        = f.label :state
+        = f.text_field :state
+
+      %li
+        = f.label :zip
+        = f.text_field :zip
+
