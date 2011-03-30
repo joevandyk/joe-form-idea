@@ -29,6 +29,9 @@ The other files in this project are a taste of what
 this could look like.  Still looking for a good project
 name, by the way.
 
+This is pretty similar to the Presenter Pattern as described
+by Jay Fields, by the way. http://blog.jayfields.com/2007/03/rails-presenter-pattern.html
+
 
 ??? WHY ???
 
