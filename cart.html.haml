@@ -1,0 +1,11 @@
+%p Your Order Total is #{ @form.total }!
+
+= form_tag cart_orders_url do
+  = fields_for :form do |f|
+    %ul
+      %li
+        = f.label :name
+        = f.text_field :name
+      %li
+        = f.label :email
+        = f.text_field :email
